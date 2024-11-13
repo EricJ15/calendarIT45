@@ -1,3 +1,8 @@
+:root {
+  --theme-color: #17726d;
+  --background-color: #eae4d2;
+}
+
 body {
     font-family: 'Arial', sans-serif;
     margin: 0;
@@ -11,7 +16,7 @@ body {
     height:90%;
 }
 .header {
-    background-color: #eae4d2;
+    background-color: var(--background-color);
     padding: 20px;
     display: flex;
     align-items: center;
@@ -25,7 +30,7 @@ body {
     font-size: 32px;
     font-weight: bold;
     margin-left: 10px;
-    color: #17726d;
+    color: var(--theme-color);
 }
 
 .header .search-bar {
@@ -35,7 +40,7 @@ body {
     padding: 8px 16px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(23, 114, 109, 0.1);
-    border: 2px solid #17726d;
+    border: 2px solid var(--theme-color);
 }
 .header .search-bar input {
     width: 600px;
@@ -44,14 +49,14 @@ body {
     font-size: 18px;
     border: none;
     outline: none;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .header .search-bar input::placeholder {
-    color: #17726d;
+    color: var(--theme-color);
     opacity: 0.7;
 }
 .header .search-bar i {
-    color: #17726d;
+    color: var(--theme-color);
     font-size: 20px;
 }
 .header .search-bar:focus-within {
@@ -64,7 +69,7 @@ body {
 .header .icons i {
     margin-left: 20px;
     font-size: 28px;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .header .weather {
     display: flex;
@@ -78,12 +83,12 @@ body {
 .header .weather .temp {
     margin-left: 10px;
     font-size: 24px;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .main-content {
     display: flex;
     flex: 1;
-    background-color: #eae4d2;
+    background-color: var(--background-color);
 }
 .calendar-section {
     flex: 2;
@@ -95,7 +100,7 @@ body {
     font-size: 32px;
     font-weight: bold;
     margin-bottom: 20px;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .calendar-section .buttons {
     display: flex;
@@ -103,7 +108,7 @@ body {
     margin-bottom: 20px;
 }
 .calendar-section .schedule-button, .calendar-section .create-button {
-    background-color: #17726d;
+    background-color: var(--theme-color);
     padding: 10px 20px;
     border-radius: 5px;
     font-size: 18px;
@@ -139,7 +144,7 @@ button.delete-button:hover {
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 20px;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .news-section .news-item {
     margin-bottom: 20px;
@@ -147,7 +152,7 @@ button.delete-button:hover {
 .news-section .news-item .news-title {
     font-size: 18px;
     font-weight: bold;
-    color: #17726d;
+    color: var(--theme-color);
 }
 .news-section .news-item .news-description {
     font-size: 16px;
@@ -158,7 +163,7 @@ button.delete-button:hover {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #17726d;
+    background-color: var(--theme-color);
     color: white;
     padding: 8px 16px;
     border-radius: 5px;
@@ -176,4 +181,31 @@ button.delete-button:hover {
 .logout-button i {
     color: white !important;
     margin-left: 0 !important;
+}
+
+.settings-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--theme-color);
+    color: white;
+    padding: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    margin-left: 20px;
+    transition: all 0.2s ease;
+}
+
+.settings-button:hover {
+    transform: rotate(90deg);
+    filter: brightness(90%);
+}
+
+.settings-button i {
+    color: white !important;
+    margin: 0 !important;
 }

@@ -1,5 +1,10 @@
+:root {
+  --theme-color: #17726d;
+  --background-color: #eae4d2;
+}
+
 body {
-  background-color: #17726d;
+  background-color: var(--theme-color);
   margin: 0;
   font-family: Arial, sans-serif;
 }

@@ -17,6 +17,20 @@ export const Login = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem('userEmail', email);
+      
+      // Restore user's color preferences if they exist
+      const savedThemeColor = localStorage.getItem('themeColor');
+      const savedBackgroundColor = localStorage.getItem('backgroundColor');
+      
+      if (savedThemeColor) {
+        document.documentElement.style.setProperty('--theme-color', savedThemeColor);
+        document.body.style.backgroundColor = savedThemeColor;
+      }
+      
+      if (savedBackgroundColor) {
+        document.documentElement.style.setProperty('--background-color', savedBackgroundColor);
+      }
+      
       navigate('/home');
     } catch (error) {
       setError(error.message);

@@ -10,6 +10,7 @@ import SearchResults from './SearchResults';
 import './home.css';
 import { useNavigate } from 'react-router-dom';
 import LoadingOverlay from './LoadingOverlay';
+import SettingsModal from './SettingsModal';
 
 export const Home = () => {
   const [events, setEvents] = useState([]);
@@ -29,6 +30,13 @@ export const Home = () => {
     news: false
   });
   const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [themeColor, setThemeColor] = useState(
+    localStorage.getItem('themeColor') || '#17726d'
+  );
+  const [backgroundColor, setBackgroundColor] = useState(
+    localStorage.getItem('backgroundColor') || '#eae4d2'
+  );
 
   useEffect(() => {
     const eventsRef = ref(database, 'events');
@@ -112,6 +120,14 @@ export const Home = () => {
     }
   }, [loadedItems]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty('--theme-color', themeColor);
+    document.documentElement.style.setProperty('--background-color', backgroundColor);
+    document.body.style.backgroundColor = themeColor;
+    localStorage.setItem('themeColor', themeColor);
+    localStorage.setItem('backgroundColor', backgroundColor);
+  }, [themeColor, backgroundColor]);
+
   const handleEventClick = (clickInfo) => {
     const event = {
       id: clickInfo.event.id,
@@ -193,7 +209,15 @@ export const Home = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('userEmail');
+    document.documentElement.style.setProperty('--theme-color', '#17726d');
+    document.documentElement.style.setProperty('--background-color', '#eae4d2');
+    document.body.style.backgroundColor = '#17726d';
     navigate('/login');
+  };
+
+  const handleThemeChange = ({ themeColor, backgroundColor }) => {
+    setThemeColor(themeColor);
+    setBackgroundColor(backgroundColor);
   };
 
   return (
@@ -220,6 +244,9 @@ export const Home = () => {
               <img alt="Weather Icon" height="50" src="https://storage.googleapis.com/a1aa/image/15tQFQkpXipfSyqcn1DNkmfNwGQWzPbIRzLP8edz9EwVDBhnA.jpg" width="50" />
               <div className="temp" id="weather">21°C</div>
             </div>
+            <button className="settings-button" onClick={() => setSettingsModalOpen(true)}>
+              <i className="fas fa-cog"></i>
+            </button>
             <button className="logout-button" onClick={handleLogout}>
               <i className="fas fa-sign-out-alt"></i>
               Logout
@@ -237,7 +264,7 @@ export const Home = () => {
                   className="schedule-button" 
                   onClick={handleScheduleClick}
                 >
-                  My Schedule
+                  My Schedules
                 </button>
                 <button className="create-button" onClick={handleCreateClick}>
                   Create Event/Task
@@ -260,10 +287,10 @@ export const Home = () => {
                 right: 'dayGridMonth,dayGridWeek,dayGridDay'
               }}
               height="auto"
-              eventColor="#17726d"
+              eventColor={themeColor}
               eventTextColor="white"
-              eventBackgroundColor="#17726d"
-              eventBorderColor="#17726d"
+              eventBackgroundColor={themeColor}
+              eventBorderColor={themeColor}
             />
           </div>
           <div className="news-section">
@@ -295,6 +322,13 @@ export const Home = () => {
           }}
           searchResults={searchResults}
           onEventClick={handleSearchResultClick}
+        />
+
+        <SettingsModal
+          isOpen={settingsModalOpen}
+          onClose={() => setSettingsModalOpen(false)}
+          currentTheme={themeColor}
+          onThemeChange={handleThemeChange}
         />
       </div>
     </>
