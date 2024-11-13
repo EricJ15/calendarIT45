@@ -1,2 +1,2 @@
-import { auth } from '../config/firebase-config';
-export { auth }; 
+import { auth, database } from '../config/firebase-config';
+export { auth, database }; 

@@ -31,11 +31,31 @@ body {
 .header .search-bar {
     display: flex;
     align-items: center;
+    background-color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(23, 114, 109, 0.1);
+    border: 2px solid #17726d;
 }
 .header .search-bar input {
+    width: 600px;
     padding: 10px;
     margin-left: 10px;
     font-size: 18px;
+    border: none;
+    outline: none;
+    color: #17726d;
+}
+.header .search-bar input::placeholder {
+    color: #17726d;
+    opacity: 0.7;
+}
+.header .search-bar i {
+    color: #17726d;
+    font-size: 20px;
+}
+.header .search-bar:focus-within {
+    box-shadow: 0 0 0 2px rgba(23, 114, 109, 0.2);
 }
 .header .icons {
     display: flex;
@@ -90,6 +110,22 @@ body {
     font-weight: bold;
     color: #eae4d2;
 }
+
+button.delete-button {
+    background-color: #dc3545;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+button.delete-button:hover {
+    background-color: #c82333;
+}
+
 #calendar {
     flex: 1;
 }
@@ -116,4 +152,28 @@ body {
 .news-section .news-item .news-description {
     font-size: 16px;
     color: #333;
+}
+
+.logout-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #17726d;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 20px;
+    transition: background-color 0.2s ease;
+}
+
+.logout-button:hover {
+    background-color: #145e5a;
+}
+
+.logout-button i {
+    color: white !important;
+    margin-left: 0 !important;
 }

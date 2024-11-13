@@ -16,7 +16,7 @@ export const Login = () => {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');  //need link ni diri para diretso sa main page
+      navigate('/home');
     } catch (error) {
       setError(error.message);
     }
