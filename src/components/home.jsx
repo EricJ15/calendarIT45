@@ -28,20 +28,24 @@ export const Home = () => {
     weather: false,
     news: false
   });
+  const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
 
   useEffect(() => {
     const eventsRef = ref(database, 'events');
     onValue(eventsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const eventsList = Object.entries(data).map(([id, event]) => ({
-          id,
-          title: event.title,
-          start: new Date(event.date).toISOString().split('T')[0],
-          description: event.description,
-          location: event.location,
-          allDay: true
-        }));
+        const eventsList = Object.entries(data)
+          .filter(([_, event]) => event.email === userEmail)
+          .map(([id, event]) => ({
+            id,
+            title: event.title,
+            start: new Date(event.date).toISOString().split('T')[0],
+            description: event.description,
+            location: event.location,
+            email: event.email,
+            allDay: true
+          }));
         setEvents(eventsList);
       } else {
         setEvents([]);
@@ -100,7 +104,7 @@ export const Home = () => {
         console.error('Error fetching news:', error);
         setLoadedItems(prev => ({ ...prev, news: true }));
       });
-  }, []);
+  }, [userEmail]);
 
   useEffect(() => {
     if (loadedItems.events && loadedItems.weather && loadedItems.news) {
@@ -131,7 +135,8 @@ export const Home = () => {
     const eventsRef = ref(database, 'events');
     const formattedEvent = {
       ...eventData,
-      date: new Date(eventData.date).toISOString().split('T')[0]
+      date: new Date(eventData.date).toISOString().split('T')[0],
+      email: userEmail
     };
     push(eventsRef, formattedEvent);
   };
@@ -143,7 +148,8 @@ export const Home = () => {
       title: eventData.title,
       description: eventData.description,
       date: new Date(eventData.date).toISOString().split('T')[0],
-      location: eventData.location
+      location: eventData.location,
+      email: userEmail
     };
     update(eventRef, formattedEvent);
     setModalMode('view');
@@ -186,6 +192,7 @@ export const Home = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('userEmail');
     navigate('/login');
   };
 

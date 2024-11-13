@@ -16,6 +16,7 @@ export const Login = () => {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      localStorage.setItem('userEmail', email);
       navigate('/home');
     } catch (error) {
       setError(error.message);
