@@ -7,7 +7,7 @@ export const Login = () => {
     <div className="login-container">
       <h1>CalTasks</h1>
       <form>
-        <input type="text" placeholder="Username" />
+        <input type="text" placeholder="Email" />
         <input type="password" placeholder="Password" />
         <button type="submit">Login</button>
       </form>

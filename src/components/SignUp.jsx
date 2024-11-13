@@ -12,7 +12,7 @@ export const SignUp = () => {
     <div class="signup-container">
         <h1>Sign Up</h1>
         <form onSubmit={handleSubmit}>
-        <input type="text" placeholder="Username" required />
+        <input type="text" placeholder="Email" required />
         <input type="password" placeholder="Password" required />
         <input type="password" placeholder="Confirm Password" required />
         <button type="submit">Sign Up</button>
