@@ -9,6 +9,7 @@ import ScheduleModal from './ScheduleModal';
 import SearchResults from './SearchResults';
 import './home.css';
 import { useNavigate } from 'react-router-dom';
+import LoadingOverlay from './LoadingOverlay';
 
 export const Home = () => {
   const [events, setEvents] = useState([]);
@@ -21,6 +22,12 @@ export const Home = () => {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [calendarApi, setCalendarApi] = useState(null);
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadedItems, setLoadedItems] = useState({
+    events: false,
+    weather: false,
+    news: false
+  });
 
   useEffect(() => {
     const eventsRef = ref(database, 'events');
@@ -39,6 +46,7 @@ export const Home = () => {
       } else {
         setEvents([]);
       }
+      setLoadedItems(prev => ({ ...prev, events: true }));
     });
 
     fetch('https://api.openweathermap.org/data/2.5/weather?q=Dumaguete&appid=8a57ae803b2cbae0711b6c69e7da27cd&units=metric')
@@ -46,10 +54,12 @@ export const Home = () => {
       .then(data => {
         const weatherDiv = document.getElementById('weather');
         weatherDiv.innerText = `${Math.round(data.main.temp)}°C`;
+        setLoadedItems(prev => ({ ...prev, weather: true }));
       })
       .catch(error => {
         console.error('Error fetching weather:', error);
         document.getElementById('weather').innerText = 'N/A';
+        setLoadedItems(prev => ({ ...prev, weather: true }));
       });
 
     fetch('https://newsapi.org/v2/everything?q=philippines&language=en&sortBy=publishedAt&apiKey=85458797d59f4618be48ff9e2ee208fc')
@@ -81,14 +91,22 @@ export const Home = () => {
         } else {
           newsSection.innerHTML += '<p>No news available at the moment</p>';
         }
+        setLoadedItems(prev => ({ ...prev, news: true }));
       })
       .catch(error => {
         const newsSection = document.querySelector('.news-section');
         newsSection.innerHTML = '<div class="news-title">Latest News from Philippines</div>';
         newsSection.innerHTML += '<p>Unable to load news at the moment</p>';
         console.error('Error fetching news:', error);
+        setLoadedItems(prev => ({ ...prev, news: true }));
       });
   }, []);
+
+  useEffect(() => {
+    if (loadedItems.events && loadedItems.weather && loadedItems.news) {
+      setIsLoading(false);
+    }
+  }, [loadedItems]);
 
   const handleEventClick = (clickInfo) => {
     const event = {
@@ -172,104 +190,107 @@ export const Home = () => {
   };
 
   return (
-    <div className="container">
-      <div className="header">
-        <div className="flex items-center">
-          <img alt="Calendar Icon" height="50" src="https://storage.googleapis.com/a1aa/image/URnBX3wbNf24DShZ0Inbf8cMZ8hqCzMCOujwY22H6OwohgwTA.jpg" width="50" />
-          <div className="title">CalTask</div>
-        </div>
-        <div className="search-bar">
-          <i className="fas fa-search"></i>
-          <input 
-            placeholder="Search events... (Press Enter to search)" 
-            type="text"
-            value={searchTerm}
-            onChange={handleSearch}
-            onKeyPress={handleSearchKeyPress}
-          />
-        </div>
-        <div className="icons">
-          <div className="weather">
-            <img alt="Weather Icon" height="50" src="https://storage.googleapis.com/a1aa/image/15tQFQkpXipfSyqcn1DNkmfNwGQWzPbIRzLP8edz9EwVDBhnA.jpg" width="50" />
-            <div className="temp" id="weather">21°C</div>
+    <>
+      <LoadingOverlay isLoading={isLoading} />
+      <div className="container">
+        <div className="header">
+          <div className="flex items-center">
+            <img alt="Calendar Icon" height="50" src="https://storage.googleapis.com/a1aa/image/URnBX3wbNf24DShZ0Inbf8cMZ8hqCzMCOujwY22H6OwohgwTA.jpg" width="50" />
+            <div className="title">CalTask</div>
           </div>
-          <button className="logout-button" onClick={handleLogout}>
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
-          </button>
-        </div>
-      </div>
-      <div className="main-content">
-        <div className="calendar-section">
-          <div className="flex justify-between items-center">
-            <div className="month">
-              {new Date().toLocaleString('default', { month: 'long' })}
-            </div>
-            <div className="buttons">
-              <button 
-                className="schedule-button" 
-                onClick={handleScheduleClick}
-              >
-                My Schedule
-              </button>
-              <button className="create-button" onClick={handleCreateClick}>
-                Create Event/Task
-              </button>
-            </div>
+          <div className="search-bar">
+            <i className="fas fa-search"></i>
+            <input 
+              placeholder="Search events... (Press Enter to search)" 
+              type="text"
+              value={searchTerm}
+              onChange={handleSearch}
+              onKeyPress={handleSearchKeyPress}
+            />
           </div>
-          <FullCalendar
-            ref={calendarRef => {
-              if (calendarRef) {
-                setCalendarApi(calendarRef.getApi());
-              }
-            }}
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            events={events}
-            eventClick={handleEventClick}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,dayGridWeek,dayGridDay'
-            }}
-            height="auto"
-            eventColor="#17726d"
-            eventTextColor="white"
-            eventBackgroundColor="#17726d"
-            eventBorderColor="#17726d"
-          />
+          <div className="icons">
+            <div className="weather">
+              <img alt="Weather Icon" height="50" src="https://storage.googleapis.com/a1aa/image/15tQFQkpXipfSyqcn1DNkmfNwGQWzPbIRzLP8edz9EwVDBhnA.jpg" width="50" />
+              <div className="temp" id="weather">21°C</div>
+            </div>
+            <button className="logout-button" onClick={handleLogout}>
+              <i className="fas fa-sign-out-alt"></i>
+              Logout
+            </button>
+          </div>
         </div>
-        <div className="news-section">
-          <div className="news-title">Latest News</div>
+        <div className="main-content">
+          <div className="calendar-section">
+            <div className="flex justify-between items-center">
+              <div className="month">
+                {new Date().toLocaleString('default', { month: 'long' })}
+              </div>
+              <div className="buttons">
+                <button 
+                  className="schedule-button" 
+                  onClick={handleScheduleClick}
+                >
+                  My Schedule
+                </button>
+                <button className="create-button" onClick={handleCreateClick}>
+                  Create Event/Task
+                </button>
+              </div>
+            </div>
+            <FullCalendar
+              ref={calendarRef => {
+                if (calendarRef) {
+                  setCalendarApi(calendarRef.getApi());
+                }
+              }}
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              events={events}
+              eventClick={handleEventClick}
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek,dayGridDay'
+              }}
+              height="auto"
+              eventColor="#17726d"
+              eventTextColor="white"
+              eventBackgroundColor="#17726d"
+              eventBorderColor="#17726d"
+            />
+          </div>
+          <div className="news-section">
+            <div className="news-title">Latest News</div>
+          </div>
         </div>
+
+        <EventModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          event={selectedEvent}
+          onSave={handleSaveEvent}
+          onUpdate={handleUpdateEvent}
+          onDelete={handleDeleteEvent}
+          mode={modalMode}
+        />
+
+        <ScheduleModal
+          isOpen={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          events={events}
+        />
+
+        <SearchResults
+          isOpen={searchModalOpen}
+          onClose={() => {
+            setSearchModalOpen(false);
+            setSearchTerm('');
+          }}
+          searchResults={searchResults}
+          onEventClick={handleSearchResultClick}
+        />
       </div>
-
-      <EventModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        event={selectedEvent}
-        onSave={handleSaveEvent}
-        onUpdate={handleUpdateEvent}
-        onDelete={handleDeleteEvent}
-        mode={modalMode}
-      />
-
-      <ScheduleModal
-        isOpen={scheduleModalOpen}
-        onClose={() => setScheduleModalOpen(false)}
-        events={events}
-      />
-
-      <SearchResults
-        isOpen={searchModalOpen}
-        onClose={() => {
-          setSearchModalOpen(false);
-          setSearchTerm('');
-        }}
-        searchResults={searchResults}
-        onEventClick={handleSearchResultClick}
-      />
-    </div>
+    </>
   );
 };
 
