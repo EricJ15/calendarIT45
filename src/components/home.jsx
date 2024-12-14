@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { ref, push, onValue, remove, update } from 'firebase/database';
+import { ref, push, onValue, remove, update, off } from 'firebase/database';
 import { database } from '../config/firebase-config';
 import EventModal from './EventModal';
 import ScheduleModal from './ScheduleModal';
@@ -11,6 +11,7 @@ import './home.css';
 import { useNavigate } from 'react-router-dom';
 import LoadingOverlay from './LoadingOverlay';
 import SettingsModal from './SettingsModal';
+import PublicEventsWrapper from './PublicEventsWrapper';
 
 export const Home = () => {
   const [events, setEvents] = useState([]);
@@ -29,7 +30,7 @@ export const Home = () => {
     weather: false,
     news: false
   });
-  const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
+  const [userEmail] = useState(localStorage.getItem('userEmail') || '');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [themeColor, setThemeColor] = useState(
     localStorage.getItem('themeColor') || '#17726d'
@@ -37,6 +38,7 @@ export const Home = () => {
   const [backgroundColor, setBackgroundColor] = useState(
     localStorage.getItem('backgroundColor') || '#eae4d2'
   );
+  const [publicEventsModalOpen, setPublicEventsModalOpen] = useState(false);
 
   useEffect(() => {
     const eventsRef = ref(database, 'events');
@@ -44,7 +46,9 @@ export const Home = () => {
       const data = snapshot.val();
       if (data) {
         const eventsList = Object.entries(data)
-          .filter(([_, event]) => event.email === userEmail)
+          .filter(([_, event]) => {
+            return event.email === userEmail || event.isPublic === true;
+          })
           .map(([id, event]) => ({
             id,
             title: event.title,
@@ -52,6 +56,10 @@ export const Home = () => {
             description: event.description,
             location: event.location,
             email: event.email,
+            isPublic: event.isPublic || false,
+            imageUrl: event.imageUrl || '',
+            interested: event.interested || 1,
+            interestedEmails: event.interestedEmails || [event.email],
             allDay: true
           }));
         setEvents(eventsList);
@@ -112,6 +120,11 @@ export const Home = () => {
         console.error('Error fetching news:', error);
         setLoadedItems(prev => ({ ...prev, news: true }));
       });
+
+    return () => {
+      const eventsRef = ref(database, 'events');
+      off(eventsRef);
+    };
   }, [userEmail]);
 
   useEffect(() => {
@@ -134,7 +147,11 @@ export const Home = () => {
       title: clickInfo.event.title,
       date: clickInfo.event.startStr,
       description: clickInfo.event.extendedProps.description,
-      location: clickInfo.event.extendedProps.location
+      location: clickInfo.event.extendedProps.location,
+      isPublic: clickInfo.event.extendedProps.isPublic || false,
+      imageUrl: clickInfo.event.extendedProps.imageUrl || '',
+      interested: clickInfo.event.extendedProps.interested || 1,
+      interestedEmails: clickInfo.event.extendedProps.interestedEmails || [clickInfo.event.extendedProps.email]
     };
     setSelectedEvent(event);
     setModalMode('view');
@@ -152,7 +169,11 @@ export const Home = () => {
     const formattedEvent = {
       ...eventData,
       date: new Date(eventData.date).toISOString().split('T')[0],
-      email: userEmail
+      email: userEmail,
+      isPublic: eventData.isPublic || false,
+      imageUrl: eventData.imageUrl || '',
+      interested: eventData.isPublic ? 1 : 1,
+      interestedEmails: eventData.isPublic ? [userEmail] : []
     };
     push(eventsRef, formattedEvent);
   };
@@ -165,7 +186,11 @@ export const Home = () => {
       description: eventData.description,
       date: new Date(eventData.date).toISOString().split('T')[0],
       location: eventData.location,
-      email: userEmail
+      email: userEmail,
+      isPublic: eventData.isPublic || false,
+      imageUrl: eventData.imageUrl || '',
+      interested: eventData.isPublic ? (eventData.interested || 1) : 1,
+      interestedEmails: eventData.isPublic ? (eventData.interestedEmails || [userEmail]) : []
     };
     update(eventRef, formattedEvent);
     setModalMode('view');
@@ -220,13 +245,22 @@ export const Home = () => {
     setBackgroundColor(backgroundColor);
   };
 
+  const handlePublicEventsClick = () => {
+    setPublicEventsModalOpen(true);
+  };
+
   return (
     <>
       <LoadingOverlay isLoading={isLoading} />
       <div className="container">
         <div className="header">
           <div className="flex items-center">
-            <img alt="Calendar Icon" height="50" src="https://storage.googleapis.com/a1aa/image/URnBX3wbNf24DShZ0Inbf8cMZ8hqCzMCOujwY22H6OwohgwTA.jpg" width="50" />
+            <img 
+              src="https://storage.googleapis.com/a1aa/image/URnBX3wbNf24DShZ0Inbf8cMZ8hqCzMCOujwY22H6OwohgwTA.jpg" 
+              alt="CalTask Logo" 
+              width="50" 
+              height="50" 
+            />
             <div className="title">CalTask</div>
           </div>
           <div className="search-bar">
@@ -241,13 +275,26 @@ export const Home = () => {
           </div>
           <div className="icons">
             <div className="weather">
-              <img alt="Weather Icon" height="50" src="https://storage.googleapis.com/a1aa/image/15tQFQkpXipfSyqcn1DNkmfNwGQWzPbIRzLP8edz9EwVDBhnA.jpg" width="50" />
+              <img 
+                src="https://storage.googleapis.com/a1aa/image/15tQFQkpXipfSyqcn1DNkmfNwGQWzPbIRzLP8edz9EwVDBhnA.jpg" 
+                alt="Current Weather" 
+                width="50" 
+                height="50" 
+              />
               <div className="temp" id="weather">21°C</div>
             </div>
-            <button className="settings-button" onClick={() => setSettingsModalOpen(true)}>
+            <button 
+              className="settings-button" 
+              onClick={() => setSettingsModalOpen(true)}
+              aria-label="Settings"
+            >
               <i className="fas fa-cog"></i>
             </button>
-            <button className="logout-button" onClick={handleLogout}>
+            <button 
+              className="logout-button" 
+              onClick={handleLogout}
+              aria-label="Logout"
+            >
               <i className="fas fa-sign-out-alt"></i>
               Logout
             </button>
@@ -263,10 +310,22 @@ export const Home = () => {
                 <button 
                   className="schedule-button" 
                   onClick={handleScheduleClick}
+                  aria-label="View My Schedules"
                 >
                   My Schedules
                 </button>
-                <button className="create-button" onClick={handleCreateClick}>
+                <button 
+                  className="schedule-button" 
+                  onClick={handlePublicEventsClick}
+                  aria-label="View Public Events"
+                >
+                  Public Events
+                </button>
+                <button 
+                  className="create-button" 
+                  onClick={handleCreateClick}
+                  aria-label="Create Event or Task"
+                >
                   Create Event/Task
                 </button>
               </div>
@@ -306,6 +365,8 @@ export const Home = () => {
           onUpdate={handleUpdateEvent}
           onDelete={handleDeleteEvent}
           mode={modalMode}
+          setModalMode={setModalMode}
+          setModalOpen={setModalOpen}
         />
 
         <ScheduleModal
@@ -329,6 +390,12 @@ export const Home = () => {
           onClose={() => setSettingsModalOpen(false)}
           currentTheme={themeColor}
           onThemeChange={handleThemeChange}
+        />
+
+        <PublicEventsWrapper
+          isOpen={publicEventsModalOpen}
+          onClose={() => setPublicEventsModalOpen(false)}
+          userEmail={userEmail}
         />
       </div>
     </>

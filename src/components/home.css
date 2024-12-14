@@ -209,3 +209,14 @@ button.delete-button:hover {
     color: white !important;
     margin: 0 !important;
 }
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.schedule-button {
+  /* existing styles */
+  margin-right: 0;  /* if there was any margin-right, remove it */
+}

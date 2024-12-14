@@ -1,111 +1,187 @@
 import React, { useState, useEffect } from 'react';
 import './EventModal.css';
 
-const EventModal = ({ isOpen, onClose, event, onSave, onDelete, onUpdate, mode = 'view' }) => {
-  const [eventData, setEventData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    location: '',
-  });
-  const [currentMode, setCurrentMode] = useState(mode);
+const DEFAULT_IMAGE_URL = 'https://th.bing.com/th/id/OIP.H1gHhKVbteqm1U5SrwpPgwAAAA?rs=1&pid=ImgDetMain';
 
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
+const EventModal = ({ isOpen, onClose, event, onSave, onUpdate, onDelete, mode, setModalMode, setModalOpen }) => {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [interested, setInterested] = useState(1);
+  const [interestedEmails, setInterestedEmails] = useState([]);
 
   useEffect(() => {
     if (event) {
-      setEventData(event);
+      setTitle(event.title || '');
+      setDate(event.date || '');
+      setDescription(event.description || '');
+      setLocation(event.location || '');
+      setIsPublic(event.isPublic || false);
+      setImageUrl(event.imageUrl || '');
+      setInterested(event.interested || 1);
+      setInterestedEmails(event.interestedEmails || []);
     } else {
-      setEventData({
-        title: '',
-        description: '',
-        date: '',
-        location: '',
-      });
+      setTitle('');
+      setDate('');
+      setDescription('');
+      setLocation('');
+      setIsPublic(false);
+      setImageUrl('');
+      setInterested(1);
+      setInterestedEmails([]);
     }
-    setCurrentMode(mode);
-  }, [event, mode]);
-
-  if (!isOpen) return null;
+  }, [event]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (currentMode === 'edit') {
-      onUpdate(eventData);
-    } else if (currentMode === 'create') {
+    const eventData = {
+      title,
+      date,
+      description,
+      location,
+      isPublic,
+      imageUrl: isPublic ? imageUrl : '',
+      interested: isPublic ? interested : 1,
+      interestedEmails: isPublic ? interestedEmails : []
+    };
+
+    if (event?.id) {
+      onUpdate({ ...eventData, id: event.id });
+    } else {
       onSave(eventData);
     }
     onClose();
   };
 
-  const handleEditClick = () => {
-    setCurrentMode('edit');
+  const handleImageError = (e) => {
+    e.target.src = DEFAULT_IMAGE_URL;
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>{mode === 'create' ? 'Create Event' : mode === 'edit' ? 'Edit Event' : 'View Event'}</h2>
         <form onSubmit={handleSubmit}>
-          <h2>{currentMode === 'view' ? 'Event Details' : currentMode === 'edit' ? 'Edit Event' : 'Create Event'}</h2>
-          
-          {currentMode === 'view' ? (
-            <div className="event-details">
-              <h3>{eventData.title}</h3>
-              <p><strong>Description:</strong> {eventData.description}</p>
-              <p><strong>Date:</strong> {eventData.date}</p>
-              <p><strong>Location:</strong> {eventData.location}</p>
-              <div className="button-group">
-                <button type="button" onClick={() => onDelete(event.id)}>Delete</button>
-                <button type="button" onClick={handleEditClick}>Edit</button>
-              </div>
-            </div>
-          ) : (
+          <div className="form-group">
+            <label>Title:</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={mode === 'view'}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Date:</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              disabled={mode === 'view'}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Description:</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={mode === 'view'}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Location:</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              disabled={mode === 'view'}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Event Type:</label>
+            <select
+              value={isPublic ? 'public' : 'private'}
+              onChange={(e) => setIsPublic(e.target.value === 'public')}
+              disabled={mode === 'view'}
+            >
+              <option value="private">Private</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+          {isPublic && (
             <>
               <div className="form-group">
-                <label>Title:</label>
+                <label>Image URL:</label>
                 <input
-                  type="text"
-                  value={eventData.title}
-                  onChange={(e) => setEventData({...eventData, title: e.target.value})}
-                  required
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Enter image URL"
                 />
               </div>
               <div className="form-group">
-                <label>Description:</label>
-                <textarea
-                  value={eventData.description}
-                  onChange={(e) => setEventData({...eventData, description: e.target.value})}
-                  required
+                <img
+                  src={imageUrl || DEFAULT_IMAGE_URL}
+                  alt="Event"
+                  style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                  onError={handleImageError}
                 />
-              </div>
-              <div className="form-group">
-                <label>Date:</label>
-                <input
-                  type="date"
-                  value={eventData.date}
-                  onChange={(e) => setEventData({...eventData, date: e.target.value})}
-                  min={getCurrentDate()}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Location:</label>
-                <input
-                  type="text"
-                  value={eventData.location}
-                  onChange={(e) => setEventData({...eventData, location: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="button-group">
-                <button type="submit">{currentMode === 'edit' ? 'Update' : 'Create'}</button>
-                <button type="button" onClick={onClose}>Cancel</button>
               </div>
             </>
           )}
+          {isPublic && mode === 'view' && (
+            <div className="form-group">
+              <label className="disabled">Interested Users: {interested}</label>
+              <div className="interested-list disabled">
+                {interestedEmails.map((email, index) => (
+                  <div key={index} className="interested-email disabled">
+                    {email}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="button-container">
+            {mode !== 'view' && (
+              <button type="submit" className="modal-button save-button">
+                {mode === 'create' ? 'Create' : 'Update'}
+              </button>
+            )}
+            {mode === 'view' && event && (
+              <>
+                <button 
+                  type="button" 
+                  onClick={() => onDelete(event.id)} 
+                  className="modal-button delete-button"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    setModalMode('edit');
+                    setModalOpen(true);
+                  }}
+                  className="modal-button edit-button"
+                >
+                  Edit
+                </button>
+              </>
+            )}
+            <button type="button" onClick={onClose} className="modal-button close-button">
+              Close
+            </button>
+          </div>
         </form>
       </div>
     </div>
