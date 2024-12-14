@@ -1,56 +1,58 @@
 import React, { useState } from 'react';
 import './EventModal.css';
 
+const DEFAULT_THEME = '#17726d';
+const DEFAULT_BACKGROUND = '#eae4d2';
+
 const SettingsModal = ({ isOpen, onClose, currentTheme, onThemeChange }) => {
-  const [themeColor, setThemeColor] = useState(currentTheme || '#17726d');
-  const [backgroundColor, setBackgroundColor] = useState(localStorage.getItem('backgroundColor') || '#eae4d2');
-
-  const handleColorChange = (e) => {
-    const newColor = e.target.value;
-    setThemeColor(newColor);
-    onThemeChange({ themeColor: newColor, backgroundColor });
-  };
-
-  const handleBackgroundChange = (e) => {
-    const newColor = e.target.value;
-    setBackgroundColor(newColor);
-    onThemeChange({ themeColor, backgroundColor: newColor });
-  };
+  const [themeColor, setThemeColor] = useState(currentTheme);
+  const [backgroundColor, setBackgroundColor] = useState(
+    localStorage.getItem('backgroundColor') || DEFAULT_BACKGROUND
+  );
 
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    onThemeChange({ themeColor, backgroundColor });
+    onClose();
+  };
+
+  const handleReset = () => {
+    setThemeColor(DEFAULT_THEME);
+    setBackgroundColor(DEFAULT_BACKGROUND);
+    onThemeChange({ 
+      themeColor: DEFAULT_THEME, 
+      backgroundColor: DEFAULT_BACKGROUND 
+    });
+    onClose();
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Settings</h2>
-        <div className="settings-content">
-          <div className="form-group">
-            <label>Theme Color (Buttons & Events):</label>
-            <div className="color-picker-container">
-              <input
-                type="color"
-                value={themeColor}
-                onChange={handleColorChange}
-                className="color-picker"
-              />
-              <span className="color-value">{themeColor}</span>
-            </div>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+        <h2>Theme Settings</h2>
+        <div className="settings-form">
+          <div className="color-picker">
+            <label>Theme Color:</label>
+            <input
+              type="color"
+              value={themeColor}
+              onChange={(e) => setThemeColor(e.target.value)}
+            />
           </div>
-          <div className="form-group">
+          <div className="color-picker">
             <label>Background Color:</label>
-            <div className="color-picker-container">
-              <input
-                type="color"
-                value={backgroundColor}
-                onChange={handleBackgroundChange}
-                className="color-picker"
-              />
-              <span className="color-value">{backgroundColor}</span>
-            </div>
+            <input
+              type="color"
+              value={backgroundColor}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+            />
           </div>
-        </div>
-        <div className="button-group">
-          <button type="button" className="submit-button" onClick={onClose}>Close</button>
+          <div className="button-group">
+            <button onClick={handleSave}>Save Changes</button>
+            <button onClick={handleReset} className="reset-button">Reset to Default</button>
+          </div>
         </div>
       </div>
     </div>

@@ -220,3 +220,19 @@ button.delete-button:hover {
   /* existing styles */
   margin-right: 0;  /* if there was any margin-right, remove it */
 }
+
+.public-events-button {
+  padding: 8px 16px;
+  background-color: var(--theme-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 10px;
+  transition: background-color 0.2s;
+}
+
+.public-events-button:hover {
+  filter: brightness(90%);
+}

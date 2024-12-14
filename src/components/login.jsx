@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { auth } from '../config/firebase-config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../utils/firebase';
+import { useNavigate, Link } from 'react-router-dom';
 import './login.css';
 
-export const Login = () => {
+const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,22 +16,8 @@ export const Login = () => {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      localStorage.setItem('userEmail', email);
-      
-      // Restore user's color preferences if they exist
-      const savedThemeColor = localStorage.getItem('themeColor');
-      const savedBackgroundColor = localStorage.getItem('backgroundColor');
-      
-      if (savedThemeColor) {
-        document.documentElement.style.setProperty('--theme-color', savedThemeColor);
-        document.body.style.backgroundColor = savedThemeColor;
-      }
-      
-      if (savedBackgroundColor) {
-        document.documentElement.style.setProperty('--background-color', savedBackgroundColor);
-      }
-      
-      navigate('/home');
+      onLogin(email);
+      navigate('/');
     } catch (error) {
       setError(error.message);
     }

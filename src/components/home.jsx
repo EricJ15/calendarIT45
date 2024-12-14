@@ -11,9 +11,11 @@ import './home.css';
 import { useNavigate } from 'react-router-dom';
 import LoadingOverlay from './LoadingOverlay';
 import SettingsModal from './SettingsModal';
-import PublicEventsWrapper from './PublicEventsWrapper';
+import PublicEvents from './PublicEvents';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase-config';
 
-export const Home = () => {
+export const Home = ({ userEmail }) => {
   const [events, setEvents] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -30,7 +32,6 @@ export const Home = () => {
     weather: false,
     news: false
   });
-  const [userEmail] = useState(localStorage.getItem('userEmail') || '');
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [themeColor, setThemeColor] = useState(
     localStorage.getItem('themeColor') || '#17726d'
@@ -38,7 +39,16 @@ export const Home = () => {
   const [backgroundColor, setBackgroundColor] = useState(
     localStorage.getItem('backgroundColor') || '#eae4d2'
   );
-  const [publicEventsModalOpen, setPublicEventsModalOpen] = useState(false);
+  const [isPublicEventsOpen, setIsPublicEventsOpen] = useState(false);
+  const [weatherTemp, setWeatherTemp] = useState('--');
+  const [newsItems, setNewsItems] = useState([]);
+
+  useEffect(() => {
+    if (!userEmail) {
+      navigate('/login');
+      return;
+    }
+  }, [userEmail, navigate]);
 
   useEffect(() => {
     const eventsRef = ref(database, 'events');
@@ -72,52 +82,34 @@ export const Home = () => {
     fetch('https://api.openweathermap.org/data/2.5/weather?q=Dumaguete&appid=8a57ae803b2cbae0711b6c69e7da27cd&units=metric')
       .then(response => response.json())
       .then(data => {
-        const weatherDiv = document.getElementById('weather');
-        weatherDiv.innerText = `${Math.round(data.main.temp)}°C`;
+        setWeatherTemp(`${Math.round(data.main.temp)}°C`);
         setLoadedItems(prev => ({ ...prev, weather: true }));
       })
       .catch(error => {
         console.error('Error fetching weather:', error);
-        document.getElementById('weather').innerText = 'N/A';
+        setWeatherTemp('N/A');
         setLoadedItems(prev => ({ ...prev, weather: true }));
       });
 
     fetch('https://newsapi.org/v2/everything?q=philippines&language=en&sortBy=publishedAt&apiKey=85458797d59f4618be48ff9e2ee208fc')
       .then(response => response.json())
       .then(data => {
-        const newsSection = document.querySelector('.news-section');
-        newsSection.innerHTML = '<div class="news-title">Latest News from Philippines</div>';
         if (data.articles && data.articles.length > 0) {
-          const filteredArticles = data.articles.filter(article => 
-            article.title && 
-            article.description && 
-            !article.title.includes('[Removed]') && 
-            !article.description.includes('[Removed]')
-          );
-
-          filteredArticles.slice(0, 5).forEach(article => {
-            const newsItem = document.createElement('div');
-            newsItem.className = 'news-item';
-            newsItem.innerHTML = `
-              <div class="news-title">${article.title}</div>
-              <div class="news-description">${article.description}</div>
-            `;
-            newsSection.appendChild(newsItem);
-          });
-
-          if (filteredArticles.length === 0) {
-            newsSection.innerHTML += '<p>No news available at the moment</p>';
-          }
-        } else {
-          newsSection.innerHTML += '<p>No news available at the moment</p>';
+          const filteredArticles = data.articles
+            .filter(article => 
+              article.title && 
+              article.description && 
+              !article.title.includes('[Removed]') && 
+              !article.description.includes('[Removed]')
+            )
+            .slice(0, 5);
+          setNewsItems(filteredArticles);
         }
         setLoadedItems(prev => ({ ...prev, news: true }));
       })
       .catch(error => {
-        const newsSection = document.querySelector('.news-section');
-        newsSection.innerHTML = '<div class="news-title">Latest News from Philippines</div>';
-        newsSection.innerHTML += '<p>Unable to load news at the moment</p>';
         console.error('Error fetching news:', error);
+        setNewsItems([]);
         setLoadedItems(prev => ({ ...prev, news: true }));
       });
 
@@ -151,7 +143,8 @@ export const Home = () => {
       isPublic: clickInfo.event.extendedProps.isPublic || false,
       imageUrl: clickInfo.event.extendedProps.imageUrl || '',
       interested: clickInfo.event.extendedProps.interested || 1,
-      interestedEmails: clickInfo.event.extendedProps.interestedEmails || [clickInfo.event.extendedProps.email]
+      interestedEmails: clickInfo.event.extendedProps.interestedEmails || [],
+      email: clickInfo.event.extendedProps.email
     };
     setSelectedEvent(event);
     setModalMode('view');
@@ -172,9 +165,15 @@ export const Home = () => {
       email: userEmail,
       isPublic: eventData.isPublic || false,
       imageUrl: eventData.imageUrl || '',
-      interested: eventData.isPublic ? 1 : 1,
-      interestedEmails: eventData.isPublic ? [userEmail] : []
+      interested: 1,
+      interestedEmails: [userEmail]
     };
+
+    if (!formattedEvent.email) {
+      alert('User email is required');
+      return;
+    }
+
     push(eventsRef, formattedEvent);
   };
 
@@ -190,8 +189,14 @@ export const Home = () => {
       isPublic: eventData.isPublic || false,
       imageUrl: eventData.imageUrl || '',
       interested: eventData.isPublic ? (eventData.interested || 1) : 1,
-      interestedEmails: eventData.isPublic ? (eventData.interestedEmails || [userEmail]) : []
+      interestedEmails: [userEmail]
     };
+
+    if (!formattedEvent.email) {
+      alert('User email is required');
+      return;
+    }
+
     update(eventRef, formattedEvent);
     setModalMode('view');
   };
@@ -232,21 +237,22 @@ export const Home = () => {
     setSearchTerm('');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userEmail');
-    document.documentElement.style.setProperty('--theme-color', '#17726d');
-    document.documentElement.style.setProperty('--background-color', '#eae4d2');
-    document.body.style.backgroundColor = '#17726d';
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.clear();
+      document.documentElement.style.setProperty('--theme-color', '#17726d');
+      document.documentElement.style.setProperty('--background-color', '#eae4d2');
+      document.body.style.backgroundColor = '#17726d';
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
   const handleThemeChange = ({ themeColor, backgroundColor }) => {
     setThemeColor(themeColor);
     setBackgroundColor(backgroundColor);
-  };
-
-  const handlePublicEventsClick = () => {
-    setPublicEventsModalOpen(true);
   };
 
   return (
@@ -281,7 +287,7 @@ export const Home = () => {
                 width="50" 
                 height="50" 
               />
-              <div className="temp" id="weather">21°C</div>
+              <div className="temp">{weatherTemp}</div>
             </div>
             <button 
               className="settings-button" 
@@ -316,7 +322,7 @@ export const Home = () => {
                 </button>
                 <button 
                   className="schedule-button" 
-                  onClick={handlePublicEventsClick}
+                  onClick={() => setIsPublicEventsOpen(true)}
                   aria-label="View Public Events"
                 >
                   Public Events
@@ -353,7 +359,17 @@ export const Home = () => {
             />
           </div>
           <div className="news-section">
-            <div className="news-title">Latest News</div>
+            <div className="news-title">Latest News from Philippines</div>
+            {newsItems.length > 0 ? (
+              newsItems.map((article, index) => (
+                <div key={index} className="news-item">
+                  <div className="news-title">{article.title}</div>
+                  <div className="news-description">{article.description}</div>
+                </div>
+              ))
+            ) : (
+              <p>No news available at the moment</p>
+            )}
           </div>
         </div>
 
@@ -392,9 +408,9 @@ export const Home = () => {
           onThemeChange={handleThemeChange}
         />
 
-        <PublicEventsWrapper
-          isOpen={publicEventsModalOpen}
-          onClose={() => setPublicEventsModalOpen(false)}
+        <PublicEvents
+          isOpen={isPublicEventsOpen}
+          onClose={() => setIsPublicEventsOpen(false)}
           userEmail={userEmail}
         />
       </div>
