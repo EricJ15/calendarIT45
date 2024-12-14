@@ -1,50 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, onValue, off, update } from 'firebase/database';
 import { database } from '../config/firebase-config';
 import './PublicEvents.css';
 
 const PublicEvents = ({ isOpen, onClose, userEmail }) => {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const DEFAULT_IMAGE = "https://th.bing.com/th/id/OIP.H1gHhKVbteqm1U5SrwpPgwAAAA?rs=1&pid=ImgDetMain";
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortType, setSortType] = useState('none'); // 'none', 'interests', 'alphabetical'
+  const [sortDirection, setSortDirection] = useState('asc');
 
   useEffect(() => {
-    if (!isOpen) return;
-
     const eventsRef = ref(database, 'events');
-    setLoading(true);
-    setError(null);
-
-    const unsubscribe = onValue(eventsRef, (snapshot) => {
-      try {
-        if (snapshot.exists()) {
-          const eventsData = snapshot.val();
-          const eventsList = Object.entries(eventsData)
-            .map(([id, data]) => ({
-              id,
-              ...data,
-              isUserInterested: Array.isArray(data.interestedEmails) && 
-                data.interestedEmails.includes(userEmail)
-            }))
-            .filter(event => event.isPublic === true)
-            .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-          setEvents(eventsList);
-        } else {
-          setEvents([]);
-        }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-        setError('Failed to load events. Please try again later.');
-      } finally {
-        setLoading(false);
+    onValue(eventsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const publicEvents = Object.entries(data)
+          .filter(([_, event]) => event.isPublic)
+          .map(([id, event]) => ({
+            id,
+            ...event,
+            isUserInterested: Array.isArray(event.interestedEmails) && 
+                             event.interestedEmails.includes(userEmail)
+          }));
+        setEvents(publicEvents);
       }
     });
 
-    return () => unsubscribe();
-  }, [isOpen, userEmail]);
+    return () => {
+      const eventsRef = ref(database, 'events');
+      off(eventsRef);
+    };
+  }, [userEmail]);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value.toLowerCase());
+  };
+
+  const handleSort = () => {
+    if (sortType === 'none') {
+      setSortType('interests');
+      setSortDirection('desc');
+    } else if (sortType === 'interests') {
+      setSortType('alphabetical');
+      setSortDirection('asc');
+    } else {
+      setSortType('none');
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = () => {
+    switch (sortType) {
+      case 'interests':
+        return sortDirection === 'asc' ? '👥↑' : '👥↓';
+      case 'alphabetical':
+        return sortDirection === 'asc' ? 'A↑' : 'A↓';
+      default:
+        return '↕️';
+    }
+  };
+
+  const sortEvents = (eventsToSort) => {
+    switch (sortType) {
+      case 'interests':
+        return [...eventsToSort].sort((a, b) => {
+          const diff = (b.interested || 0) - (a.interested || 0);
+          return sortDirection === 'asc' ? -diff : diff;
+        });
+      case 'alphabetical':
+        return [...eventsToSort].sort((a, b) => {
+          const diff = a.title.localeCompare(b.title);
+          return sortDirection === 'asc' ? diff : -diff;
+        });
+      default:
+        return eventsToSort;
+    }
+  };
+
+  const filteredAndSortedEvents = sortEvents(
+    events.filter(event => 
+      event.title.toLowerCase().includes(searchTerm) ||
+      event.description.toLowerCase().includes(searchTerm) ||
+      event.location.toLowerCase().includes(searchTerm)
+    )
+  );
 
   const handleInterested = async (event) => {
     if (!userEmail) {
@@ -80,34 +119,35 @@ const PublicEvents = ({ isOpen, onClose, userEmail }) => {
       <div className="public-modal-content" onClick={e => e.stopPropagation()}>
         <button className="public-modal-close" onClick={onClose}>&times;</button>
         <h2>Public Events</h2>
-
-        {loading && (
-          <div className="public-loading-state">
-            <p>Loading events...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="public-error-state">
-            <p>{error}</p>
-          </div>
-        )}
-
-        {!loading && !error && events.length === 0 && (
-          <div className="public-empty-state">
-            <p>No public events available at the moment.</p>
-          </div>
-        )}
         
-        {!loading && !error && events.length > 0 && (
-          <div className="public-events-container">
-            {events.map(event => (
+        <div className="public-events-controls">
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchTerm}
+              onChange={handleSearch}
+              className="public-events-search"
+            />
+            <button 
+              onClick={handleSort}
+              className="sort-button"
+              title={`Sort by: ${sortType === 'none' ? 'None' : sortType}`}
+            >
+              {getSortIcon()}
+            </button>
+          </div>
+        </div>
+
+        <div className="public-events-container">
+          {filteredAndSortedEvents.length > 0 ? (
+            filteredAndSortedEvents.map(event => (
               <div key={event.id} className="public-event-card">
                 <div className="public-event-image">
                   <img
-                    src={event.imageUrl || DEFAULT_IMAGE}
+                    src={event.imageUrl || "https://th.bing.com/th/id/OIP.H1gHhKVbteqm1U5SrwpPgwAAAA?rs=1&pid=ImgDetMain"}
                     alt={event.title}
-                    onError={e => e.target.src = DEFAULT_IMAGE}
+                    onError={e => e.target.src = "https://th.bing.com/th/id/OIP.H1gHhKVbteqm1U5SrwpPgwAAAA?rs=1&pid=ImgDetMain"}
                   />
                 </div>
                 <div className="public-event-info">
@@ -116,18 +156,20 @@ const PublicEvents = ({ isOpen, onClose, userEmail }) => {
                   <p className="public-event-date">Date: {event.date}</p>
                   <div className="public-event-stats">
                     <span>{event.interested || 0} interested</span>
-                    <button
+                    <button 
                       className={`public-interest-button ${event.isUserInterested ? 'interested' : ''}`}
                       onClick={() => handleInterested(event)}
                     >
-                      {event.isUserInterested ? 'Not Interested' : 'Interested'}
+                      {event.isUserInterested ? 'Remove Interest' : 'Interested'}
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          ) : (
+            <div className="public-empty-state">No public events found</div>
+          )}
+        </div>
       </div>
     </div>
   );
