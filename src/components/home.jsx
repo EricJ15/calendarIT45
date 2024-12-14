@@ -93,27 +93,41 @@ export const Home = ({ userEmail }) => {
         setLoadedItems(prev => ({ ...prev, weather: true }));
       });
 
-    fetch('https://newsapi.org/v2/everything?q=philippines&language=en&sortBy=publishedAt&apiKey=85458797d59f4618be48ff9e2ee208fc')
-      .then(response => response.json())
-      .then(data => {
-        if (data.articles && data.articles.length > 0) {
-          const filteredArticles = data.articles
-            .filter(article => 
-              article.title && 
-              article.description && 
-              !article.title.includes('[Removed]') && 
-              !article.description.includes('[Removed]')
-            )
-            .slice(0, 5);
-          setNewsItems(filteredArticles);
-        }
-        setLoadedItems(prev => ({ ...prev, news: true }));
-      })
-      .catch(error => {
-        console.error('Error fetching news:', error);
+    fetch('https://newsapi.org/v2/everything?q=philippines&language=en&sortBy=publishedAt&apiKey=85458797d59f4618be48ff9e2ee208fc', {
+      headers: {
+        'Authorization': '85458797d59f4618be48ff9e2ee208fc'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('News API response:', data);
+      if (data.articles && data.articles.length > 0) {
+        const filteredArticles = data.articles
+          .filter(article => 
+            article.title && 
+            article.description && 
+            !article.title.includes('[Removed]') && 
+            !article.description.includes('[Removed]')
+          )
+          .slice(0, 5);
+        console.log('Filtered articles:', filteredArticles);
+        setNewsItems(filteredArticles);
+      } else {
+        console.log('No articles found in response');
         setNewsItems([]);
-        setLoadedItems(prev => ({ ...prev, news: true }));
-      });
+      }
+      setLoadedItems(prev => ({ ...prev, news: true }));
+    })
+    .catch(error => {
+      console.error('Error fetching news:', error);
+      setNewsItems([]);
+      setLoadedItems(prev => ({ ...prev, news: true }));
+    });
 
     return () => {
       const eventsRef = ref(database, 'events');
