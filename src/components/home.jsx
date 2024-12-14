@@ -14,8 +14,47 @@ import SettingsModal from './SettingsModal';
 import PublicEvents from './PublicEvents';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase-config';
+import { observer } from 'mobx-react-lite';
+import { makeAutoObservable, runInAction } from 'mobx';
 
-export const Home = ({ userEmail }) => {
+class CalendarStore {
+  events = [];
+  weatherData = { temp: '--' };
+  newsItems = [];
+  isLoading = true;
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  setEvents(events) {
+    this.events = events;
+  }
+
+  setWeatherData(data) {
+    this.weatherData = data;
+  }
+
+  setNewsItems(items) {
+    this.newsItems = items;
+  }
+
+  setLoading(state) {
+    this.isLoading = state;
+  }
+
+  get totalEvents() {
+    return this.events.length;
+  }
+
+  get publicEventsCount() {
+    return this.events.filter(event => event.isPublic).length;
+  }
+}
+
+const calendarStore = new CalendarStore();
+
+export const Home = observer(({ userEmail }) => {
   const [events, setEvents] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -148,6 +187,25 @@ export const Home = ({ userEmail }) => {
     localStorage.setItem('themeColor', themeColor);
     localStorage.setItem('backgroundColor', backgroundColor);
   }, [themeColor, backgroundColor]);
+
+  useEffect(() => {
+    runInAction(() => {
+      calendarStore.setEvents(events);
+      calendarStore.setLoading(isLoading);
+    });
+  }, [events, isLoading]);
+
+  useEffect(() => {
+    runInAction(() => {
+      calendarStore.setWeatherData({ temp: weatherTemp });
+    });
+  }, [weatherTemp]);
+
+  useEffect(() => {
+    runInAction(() => {
+      calendarStore.setNewsItems(newsItems);
+    });
+  }, [newsItems]);
 
   const handleEventClick = (clickInfo) => {
     const event = {
@@ -432,6 +490,6 @@ export const Home = ({ userEmail }) => {
       </div>
     </>
   );
-};
+});
 
 export default Home;
