@@ -57,7 +57,9 @@ export const Home = ({ userEmail }) => {
       if (data) {
         const eventsList = Object.entries(data)
           .filter(([_, event]) => {
-            return event.email === userEmail || event.isPublic === true;
+            const isInterested = Array.isArray(event.interestedEmails) && 
+                                event.interestedEmails.includes(userEmail);
+            return event.email === userEmail || isInterested;
           })
           .map(([id, event]) => ({
             id,
@@ -69,7 +71,7 @@ export const Home = ({ userEmail }) => {
             isPublic: event.isPublic || false,
             imageUrl: event.imageUrl || '',
             interested: event.interested || 1,
-            interestedEmails: event.interestedEmails || [event.email],
+            interestedEmails: Array.isArray(event.interestedEmails) ? event.interestedEmails : [event.email],
             allDay: true
           }));
         setEvents(eventsList);
